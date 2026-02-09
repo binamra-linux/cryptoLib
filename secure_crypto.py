@@ -95,3 +95,149 @@ class SecureKeyGenerator:
         
         key = kdf.derive(password.encode('utf-8'))
         return key, salt
+
+class RSAEncryption:
+    """RSA encryption with OAEP padding for strong security."""
+    
+    def __init__(self, private_key_pem: Optional[bytes] = None, 
+                 public_key_pem: Optional[bytes] = None):
+        """
+        Initialize RSA encryption.
+        
+        Args:
+            private_key_pem: PEM-encoded private key
+            public_key_pem: PEM-encoded public key
+        """
+        self.private_key = None
+        self.public_key = None
+        
+        if private_key_pem:
+            self.private_key = serialization.load_pem_private_key(
+                private_key_pem,
+                password=None,
+                backend=default_backend()
+            )
+            # Derive public key from private key if not provided
+            if not public_key_pem:
+                self.public_key = self.private_key.public_key()
+        
+        if public_key_pem:
+            self.public_key = serialization.load_pem_public_key(
+                public_key_pem,
+                backend=default_backend()
+            )
+    
+    def encrypt(self, plaintext: bytes) -> bytes:
+        """
+        Encrypt data using RSA-OAEP.
+        
+        Args:
+            plaintext: Data to encrypt (max ~470 bytes for 4096-bit key)
+            
+        Returns:
+            Encrypted ciphertext
+            
+        Raises:
+            ValueError: If no public key available or data too large
+        """
+        if not self.public_key:
+            raise ValueError("No public key available for encryption")
+        
+        # Check size limit (conservative estimate)
+        max_size = (self.public_key.key_size // 8) - 114  # OAEP overhead
+        if len(plaintext) > max_size:
+            raise ValueError(
+                f"Data too large for RSA encryption. "
+                f"Maximum {max_size} bytes, got {len(plaintext)} bytes. "
+                f"Use hybrid encryption for larger data."
+            )
+        
+        ciphertext = self.public_key.encrypt(
+            plaintext,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        
+        return ciphertext
+    
+    def decrypt(self, ciphertext: bytes) -> bytes:
+        """
+        Decrypt RSA-OAEP encrypted data.
+        
+        Args:
+            ciphertext: Encrypted data
+            
+        Returns:
+            Decrypted plaintext
+            
+        Raises:
+            ValueError: If no private key available
+        """
+        if not self.private_key:
+            raise ValueError("No private key available for decryption")
+        
+        plaintext = self.private_key.decrypt(
+            ciphertext,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        
+        return plaintext
+    
+    def sign(self, message: bytes) -> bytes:
+        """
+        Sign a message using RSA-PSS.
+        
+        Args:
+            message: Message to sign
+            
+        Returns:
+            Digital signature
+        """
+        if not self.private_key:
+            raise ValueError("No private key available for signing")
+        
+        signature = self.private_key.sign(
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        
+        return signature
+    
+    def verify(self, message: bytes, signature: bytes) -> bool:
+        """
+        Verify a digital signature.
+        
+        Args:
+            message: Original message
+            signature: Signature to verify
+            
+        Returns:
+            True if signature is valid, False otherwise
+        """
+        if not self.public_key:
+            raise ValueError("No public key available for verification")
+        
+        try:
+            self.public_key.verify(
+                signature,
+                message,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+            return True
+        except InvalidSignature:
+            return False
