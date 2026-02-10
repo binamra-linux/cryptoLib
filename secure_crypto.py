@@ -241,3 +241,73 @@ class RSAEncryption:
             return True
         except InvalidSignature:
             return False
+
+class AESEncryption:
+    """AES-256 encryption with GCM mode for authenticated encryption."""
+    
+    def __init__(self, key: Optional[bytes] = None):
+        """
+        Initialize AES encryption.
+        
+        Args:
+            key: 256-bit encryption key (will be generated if not provided)
+        """
+        self.key = key if key else SecureKeyGenerator.generate_aes_key()
+        
+        if len(self.key) != 32:
+            raise ValueError("AES key must be exactly 32 bytes (256 bits)")
+    
+    def encrypt(self, plaintext: bytes) -> dict:
+        """
+        Encrypt data using AES-256-GCM.
+        
+        Args:
+            plaintext: Data to encrypt
+            
+        Returns:
+            Dictionary containing 'ciphertext', 'nonce', and 'tag'
+        """
+        # Generate a random 96-bit nonce (recommended for GCM)
+        nonce = os.urandom(12)
+        
+        # Create cipher
+        cipher = Cipher(
+            algorithms.AES(self.key),
+            modes.GCM(nonce),
+            backend=default_backend()
+        )
+        
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+        
+        return {
+            'ciphertext': ciphertext,
+            'nonce': nonce,
+            'tag': encryptor.tag
+        }
+    
+    def decrypt(self, ciphertext: bytes, nonce: bytes, tag: bytes) -> bytes:
+        """
+        Decrypt AES-256-GCM encrypted data.
+        
+        Args:
+            ciphertext: Encrypted data
+            nonce: Nonce used during encryption
+            tag: Authentication tag
+            
+        Returns:
+            Decrypted plaintext
+            
+        Raises:
+            InvalidTag: If authentication fails (data tampered)
+        """
+        cipher = Cipher(
+            algorithms.AES(self.key),
+            modes.GCM(nonce, tag),
+            backend=default_backend()
+        )
+        
+        decryptor = cipher.decryptor()
+        plaintext = decryptor.update(ciphertext) + decryptor.finalize()
+        
+        return plaintext
