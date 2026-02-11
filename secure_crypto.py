@@ -311,3 +311,164 @@ class AESEncryption:
         plaintext = decryptor.update(ciphertext) + decryptor.finalize()
         
         return plaintext
+
+class SecureFileEncryption:
+    """
+    Hybrid encryption for files using RSA + AES.
+    
+    Uses RSA to encrypt a random AES key, then AES-GCM to encrypt the file.
+    This provides both security and efficiency for large files.
+    """
+    
+    def __init__(self, rsa_encryption: Optional[RSAEncryption] = None):
+        """
+        Initialize file encryption.
+        
+        Args:
+            rsa_encryption: RSAEncryption instance (optional for password-based encryption)
+        """
+        self.rsa = rsa_encryption
+    
+    def encrypt_file(self, input_path: Union[str, Path], 
+                    output_path: Union[str, Path],
+                    password: Optional[str] = None) -> dict:
+        """
+        Encrypt a file using hybrid encryption or password-based encryption.
+        
+        Args:
+            input_path: Path to file to encrypt
+            output_path: Path for encrypted output
+            password: Optional password for key derivation (instead of RSA)
+            
+        Returns:
+            Metadata dictionary (save this for decryption!)
+        """
+        input_path = Path(input_path)
+        output_path = Path(output_path)
+        
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+        
+        # Read file
+        with open(input_path, 'rb') as f:
+            plaintext = f.read()
+        
+        # Generate random AES key for this file
+        aes = AESEncryption()
+        
+        # Encrypt file content
+        encrypted_data = aes.encrypt(plaintext)
+        
+        metadata = {
+            'version': '1.0',
+            'algorithm': 'AES-256-GCM',
+            'nonce': base64.b64encode(encrypted_data['nonce']).decode('utf-8'),
+            'tag': base64.b64encode(encrypted_data['tag']).decode('utf-8'),
+            'original_filename': input_path.name
+        }
+        
+        # Handle key encryption
+        if password:
+            # Password-based encryption
+            key, salt = SecureKeyGenerator.derive_key_from_password(password)
+            metadata['key_derivation'] = 'PBKDF2-SHA256'
+            metadata['salt'] = base64.b64encode(salt).decode('utf-8')
+            metadata['iterations'] = SecureKeyGenerator.PBKDF2_ITERATIONS
+            
+            # Encrypt the AES key with the derived key
+            key_encryptor = AESEncryption(key)
+            encrypted_aes_key = key_encryptor.encrypt(aes.key)
+            metadata['encrypted_key'] = base64.b64encode(encrypted_aes_key['ciphertext']).decode('utf-8')
+            metadata['key_nonce'] = base64.b64encode(encrypted_aes_key['nonce']).decode('utf-8')
+            metadata['key_tag'] = base64.b64encode(encrypted_aes_key['tag']).decode('utf-8')
+            
+        elif self.rsa:
+            # RSA-based encryption
+            encrypted_key = self.rsa.encrypt(aes.key)
+            metadata['encrypted_key'] = base64.b64encode(encrypted_key).decode('utf-8')
+            metadata['key_encryption'] = 'RSA-OAEP-SHA256'
+        else:
+            raise ValueError("Either password or RSA encryption must be provided")
+        
+        # Write encrypted file
+        with open(output_path, 'wb') as f:
+            # Write metadata as JSON header
+            metadata_json = json.dumps(metadata).encode('utf-8')
+            metadata_length = len(metadata_json)
+            
+            # Write: [4 bytes: metadata length] [metadata] [encrypted content]
+            f.write(metadata_length.to_bytes(4, byteorder='big'))
+            f.write(metadata_json)
+            f.write(encrypted_data['ciphertext'])
+        
+        return metadata
+    
+    def decrypt_file(self, input_path: Union[str, Path], 
+                    output_path: Union[str, Path],
+                    password: Optional[str] = None) -> dict:
+        """
+        Decrypt a file encrypted with encrypt_file.
+        
+        Args:
+            input_path: Path to encrypted file
+            output_path: Path for decrypted output
+            password: Password if file was encrypted with password
+            
+        Returns:
+            Metadata dictionary
+        """
+        input_path = Path(input_path)
+        output_path = Path(output_path)
+        
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
+        
+        # Read encrypted file
+        with open(input_path, 'rb') as f:
+            # Read metadata length
+            metadata_length = int.from_bytes(f.read(4), byteorder='big')
+            
+            # Read and parse metadata
+            metadata_json = f.read(metadata_length)
+            metadata = json.loads(metadata_json.decode('utf-8'))
+            
+            # Read encrypted content
+            ciphertext = f.read()
+        
+        # Decrypt the AES key
+        if 'key_derivation' in metadata:
+            # Password-based decryption
+            if not password:
+                raise ValueError("Password required for decryption")
+            
+            salt = base64.b64decode(metadata['salt'])
+            key, _ = SecureKeyGenerator.derive_key_from_password(password, salt)
+            
+            # Decrypt the AES key
+            key_decryptor = AESEncryption(key)
+            aes_key = key_decryptor.decrypt(
+                base64.b64decode(metadata['encrypted_key']),
+                base64.b64decode(metadata['key_nonce']),
+                base64.b64decode(metadata['key_tag'])
+            )
+        else:
+            # RSA-based decryption
+            if not self.rsa:
+                raise ValueError("RSA encryption instance required for decryption")
+            
+            encrypted_key = base64.b64decode(metadata['encrypted_key'])
+            aes_key = self.rsa.decrypt(encrypted_key)
+        
+        # Decrypt file content
+        aes = AESEncryption(aes_key)
+        plaintext = aes.decrypt(
+            ciphertext,
+            base64.b64decode(metadata['nonce']),
+            base64.b64decode(metadata['tag'])
+        )
+        
+        # Write decrypted file
+        with open(output_path, 'wb') as f:
+            f.write(plaintext)
+        
+        return metadata
