@@ -472,3 +472,138 @@ class SecureFileEncryption:
             f.write(plaintext)
         
         return metadata
+
+class PasswordValidator:
+    """
+    Validate password strength and provide feedback.
+    
+    Helps users choose secure passwords by checking various criteria.
+    """
+    
+    @staticmethod
+    def check_strength(password: str) -> dict:
+        """
+        Check password strength and return detailed analysis.
+        
+        Args:
+            password: Password to check
+            
+        Returns:
+            Dictionary with 'score', 'strength', and 'issues'
+        """
+        score = 0
+        issues = []
+        
+        # Length checks
+        if len(password) < 8:
+            issues.append("Too short (minimum 8 characters, 12+ recommended)")
+        elif len(password) < 12:
+            issues.append("Consider using 12+ characters for better security")
+            score += 15
+        else:
+            score += 25
+        
+        if len(password) >= 16:
+            score += 15
+        
+        # Character variety checks
+        if re.search(r'[a-z]', password):
+            score += 15
+        else:
+            issues.append("Missing lowercase letters (a-z)")
+        
+        if re.search(r'[A-Z]', password):
+            score += 15
+        else:
+            issues.append("Missing uppercase letters (A-Z)")
+        
+        if re.search(r'\d', password):
+            score += 10
+        else:
+            issues.append("Missing numbers (0-9)")
+        
+        if re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/]', password):
+            score += 10
+        else:
+            issues.append("Missing special characters (!@#$%^&*...)")
+        
+        # Additional security checks
+        if len(set(password)) < len(password) * 0.6:
+            issues.append("Too many repeated characters")
+            score -= 10
+        
+        # Sequential characters check
+        if any(password[i:i+3] in '0123456789' or 
+               password[i:i+3] in 'abcdefghijklmnopqrstuvwxyz'
+               for i in range(len(password) - 2)):
+            issues.append("Contains sequential characters (123, abc)")
+            score -= 5
+        
+        # Common password check
+        common_passwords = [
+            'password', '123456', '123456789', 'qwerty', 'abc123',
+            'monkey', '1234567', 'letmein', 'trustno1', 'dragon',
+            'baseball', 'iloveyou', 'master', 'sunshine', 'ashley',
+            'bailey', 'passw0rd', 'shadow', '123123', '654321',
+            'superman', 'qazwsx', 'michael', 'football', 'admin'
+        ]
+        
+        if password.lower() in common_passwords:
+            score = 0
+            issues = ["⚠️  CRITICAL: This is a commonly used password!"]
+        
+        # Ensure score is in valid range
+        score = max(0, min(100, score))
+        
+        # Determine strength level
+        if score >= 80:
+            strength = "Strong"
+        elif score >= 60:
+            strength = "Good"
+        elif score >= 40:
+            strength = "Fair"
+        elif score >= 20:
+            strength = "Weak"
+        else:
+            strength = "Very Weak"
+        
+        return {
+            'score': score,
+            'strength': strength,
+            'issues': issues
+        }
+    
+    @staticmethod
+    def suggest_improvements(password: str) -> list:
+        """
+        Suggest specific improvements for a password.
+        
+        Args:
+            password: Password to analyze
+            
+        Returns:
+            List of improvement suggestions
+        """
+        result = PasswordValidator.check_strength(password)
+        suggestions = []
+        
+        if result['score'] < 60:
+            suggestions.append("Consider using a passphrase (e.g., 'My@Dog#Ate$Pizza!2024')")
+            suggestions.append("Use a password manager to generate and store strong passwords")
+        
+        if len(password) < 12:
+            suggestions.append("Increase length to at least 12-16 characters")
+        
+        if not re.search(r'[A-Z]', password):
+            suggestions.append("Add uppercase letters")
+        
+        if not re.search(r'[a-z]', password):
+            suggestions.append("Add lowercase letters")
+        
+        if not re.search(r'\d', password):
+            suggestions.append("Add numbers")
+        
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/]', password):
+            suggestions.append("Add special characters")
+        
+        return suggestions
