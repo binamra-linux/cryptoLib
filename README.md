@@ -449,10 +449,6 @@ SimpleCrypto.encrypt_file_with_password("large_file.zip", "password")
 - Protect tax records and financial documents
 - Secure personal photos and videos
 
-### Team/Business
-- Share encrypted files with team members
-- Sign documents to prove authenticity
-- Encrypt database backups
 
 ### Developers
 - Add encryption to your application
@@ -471,12 +467,6 @@ from secure_crypto import secure_delete_file
 # Overwrites file with random data before deletion
 secure_delete_file("sensitive.txt", passes=3)
 ```
-
----
-
-## 📝 License
-
-MIT License - See LICENSE file
 
 ---
 
