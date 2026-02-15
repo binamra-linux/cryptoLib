@@ -607,3 +607,187 @@ class PasswordValidator:
             suggestions.append("Add special characters")
         
         return suggestions
+
+class SimpleCrypto:
+    """
+    Simple, safe interface for non-expert developers.
+    
+    Provides easy-to-use methods with strong security defaults and
+    clear guidance on what to do.
+    """
+    
+    @staticmethod
+    def create_new_keys(save_to_dir: Optional[Union[str, Path]] = None) -> dict:
+        """
+        Create a new RSA key pair.
+        
+        Args:
+            save_to_dir: Optional directory to save keys
+            
+        Returns:
+            Dictionary with 'private_key' and 'public_key' as bytes
+        """
+        private_key, public_key = SecureKeyGenerator.generate_rsa_keypair()
+        
+        keys = {
+            'private_key': private_key,
+            'public_key': public_key
+        }
+        
+        if save_to_dir:
+            save_dir = Path(save_to_dir)
+            save_dir.mkdir(parents=True, exist_ok=True)
+            
+            with open(save_dir / 'private_key.pem', 'wb') as f:
+                f.write(private_key)
+            
+            with open(save_dir / 'public_key.pem', 'wb') as f:
+                f.write(public_key)
+            
+            print(f"🔑 Keys saved to {save_dir}")
+            print(f"⚠️  IMPORTANT: Keep private_key.pem SECRET and SAFE!")
+            print(f"✅ You can share public_key.pem with others")
+        
+        return keys
+    
+    @staticmethod
+    def encrypt_file_with_password(file_path: Union[str, Path], 
+                                   password: str,
+                                   output_path: Optional[Union[str, Path]] = None) -> Path:
+        """
+        Encrypt a file with a password (easiest method).
+        
+        Args:
+            file_path: File to encrypt
+            password: Strong password
+            output_path: Optional output path (defaults to file_path.encrypted)
+            
+        Returns:
+            Path to encrypted file
+        """
+        file_path = Path(file_path)
+        
+        if not output_path:
+            output_path = file_path.with_suffix(file_path.suffix + '.encrypted')
+        
+        encryptor = SecureFileEncryption()
+        metadata = encryptor.encrypt_file(file_path, output_path, password=password)
+        
+        print(f"✅ File encrypted successfully!")
+        print(f"📁 Encrypted file: {output_path}")
+        print(f"🔒 Algorithm: {metadata['algorithm']}")
+        print(f"⚠️  Remember your password - you'll need it to decrypt!")
+        
+        return Path(output_path)
+    
+    @staticmethod
+    def decrypt_file_with_password(encrypted_file: Union[str, Path],
+                                   password: str,
+                                   output_path: Optional[Union[str, Path]] = None) -> Path:
+        """
+        Decrypt a password-encrypted file.
+        
+        Args:
+            encrypted_file: Encrypted file
+            password: Password used for encryption
+            output_path: Optional output path
+            
+        Returns:
+            Path to decrypted file
+        """
+        encrypted_file = Path(encrypted_file)
+        
+        if not output_path:
+            # Remove .encrypted extension if present
+            if encrypted_file.suffix == '.encrypted':
+                output_path = encrypted_file.with_suffix('')
+            else:
+                output_path = encrypted_file.with_suffix('.decrypted')
+        
+        decryptor = SecureFileEncryption()
+        metadata = decryptor.decrypt_file(encrypted_file, output_path, password=password)
+        
+        print(f"✅ File decrypted successfully!")
+        print(f"📁 Decrypted file: {output_path}")
+        print(f"📄 Original filename: {metadata.get('original_filename', 'Unknown')}")
+        
+        return Path(output_path)
+    
+    @staticmethod
+    def encrypt_message(message: str, public_key_path: Union[str, Path]) -> str:
+        """
+        Encrypt a short message with RSA.
+        
+        Args:
+            message: Message to encrypt (max ~400 characters)
+            public_key_path: Path to recipient's public key
+            
+        Returns:
+            Base64-encoded encrypted message
+        """
+        with open(public_key_path, 'rb') as f:
+            public_key = f.read()
+        
+        rsa = RSAEncryption(public_key_pem=public_key)
+        encrypted = rsa.encrypt(message.encode('utf-8'))
+        
+        return base64.b64encode(encrypted).decode('utf-8')
+    
+    @staticmethod
+    def decrypt_message(encrypted_message: str, private_key_path: Union[str, Path]) -> str:
+        """
+        Decrypt an RSA-encrypted message.
+        
+        Args:
+            encrypted_message: Base64-encoded encrypted message
+            private_key_path: Path to your private key
+            
+        Returns:
+            Decrypted message
+        """
+        with open(private_key_path, 'rb') as f:
+            private_key = f.read()
+        
+        rsa = RSAEncryption(private_key_pem=private_key)
+        encrypted = base64.b64decode(encrypted_message)
+        decrypted = rsa.decrypt(encrypted)
+        
+        return decrypted.decode('utf-8')
+
+def secure_delete_file(file_path: Union[str, Path], passes: int = 3):
+    """
+    Securely delete a file by overwriting it before deletion.
+    
+    Args:
+        file_path: Path to file to delete
+        passes: Number of overwrite passes (default 3)
+    """
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        return
+    
+    file_size = file_path.stat().st_size
+    
+    with open(file_path, 'ba+') as f:
+        for _ in range(passes):
+            f.seek(0)
+            f.write(os.urandom(file_size))
+            f.flush()
+            os.fsync(f.fileno())
+    
+    file_path.unlink()
+
+
+if __name__ == '__main__':
+    print("SecureCrypto Library")
+    print("=" * 50)
+    print("\nQuick Start Examples:")
+    print("\n1. Password-based file encryption (easiest):")
+    print("   SimpleCrypto.encrypt_file_with_password('document.pdf', 'MyStrongPassword123!')")
+    print("   SimpleCrypto.decrypt_file_with_password('document.pdf.encrypted', 'MyStrongPassword123!')")
+    print("\n2. Create RSA keys:")
+    print("   SimpleCrypto.create_new_keys(save_to_dir='./my_keys')")
+    print("\n3. Encrypt/decrypt messages:")
+    print("   SimpleCrypto.encrypt_message('Secret message', 'public_key.pem')")
+    print("   SimpleCrypto.decrypt_message(encrypted, 'private_key.pem')")
