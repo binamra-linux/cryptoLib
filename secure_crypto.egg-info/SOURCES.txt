@@ -1,8 +1,0 @@
-README.md
-secure_crypto.py
-setup.py
-secure_crypto.egg-info/PKG-INFO
-secure_crypto.egg-info/SOURCES.txt
-secure_crypto.egg-info/dependency_links.txt
-secure_crypto.egg-info/requires.txt
-secure_crypto.egg-info/top_level.txt
