@@ -1,9 +1,8 @@
-# c r y p t o L i b 🔐
-
+# cryptoLib
 
 A Python cryptography library designed for **non-expert developers** with strong security defaults and safe APIs.
 
-## ⚡ Quick Start
+## Quick Start
 
 ```python
 from secure_crypto import SimpleCrypto
@@ -15,9 +14,9 @@ SimpleCrypto.encrypt_file_with_password("document.pdf", "MyStrongPassword123!")
 SimpleCrypto.decrypt_file_with_password("document.pdf.encrypted", "MyStrongPassword123!")
 ```
 
-## 🎯 Features
+## Features
 
-### ✅ What Makes This Library Safe
+### What Makes This Library Safe
 
 - **Strong Defaults Only**: Minimum 3072-bit RSA keys, 256-bit AES
 - **Modern Algorithms**: RSA-OAEP, AES-256-GCM, PBKDF2 with 600k iterations
@@ -26,7 +25,7 @@ SimpleCrypto.decrypt_file_with_password("document.pdf.encrypted", "MyStrongPassw
 - **No Weak Crypto**: Weak algorithms and key sizes are rejected
 - **Hybrid Encryption**: Efficient encryption for large files
 
-### 🚀 Main Features
+### Main Features
 
 1. **Password-Based File Encryption** - Easiest way to secure files
 2. **RSA Public Key Encryption** - Share files securely with others
@@ -35,7 +34,7 @@ SimpleCrypto.decrypt_file_with_password("document.pdf.encrypted", "MyStrongPassw
 5. **Hybrid Encryption** - RSA + AES for large files
 6. **Key Derivation** - Turn passwords into encryption keys safely
 
-## 📦 Installation
+## Installation
 
 ```bash
 pip install cryptography --break-system-packages
@@ -43,7 +42,7 @@ pip install cryptography --break-system-packages
 
 Then just copy `secure_crypto.py` to your project!
 
-## 📚 Usage Guide
+## Usage Guide
 
 ### 1. Password-Based File Encryption (Simplest!)
 
@@ -66,12 +65,12 @@ SimpleCrypto.decrypt_file_with_password(
 )
 ```
 
-**When to use**: 
+**When to use**:
 - Encrypting your own files
 - Backup encryption
 - Simple file protection
 
-**Pros**: No key management needed, just remember password
+**Pros**: No key management needed, just remember password  
 **Cons**: Must share password securely if sharing with others
 
 ---
@@ -105,7 +104,7 @@ decrypted_msg = SimpleCrypto.decrypt_message(
 - Sharing files with colleagues
 - When recipients already have key pairs
 
-**Pros**: No need to share passwords
+**Pros**: No need to share passwords  
 **Cons**: Requires key management
 
 ---
@@ -225,7 +224,7 @@ key, salt = SecureKeyGenerator.derive_key_from_password(password)
 
 # Later: derive same key from same password + salt
 key_again, _ = SecureKeyGenerator.derive_key_from_password(password, salt)
-# key == key_again ✅
+# key == key_again
 ```
 
 **When to use**:
@@ -235,7 +234,7 @@ key_again, _ = SecureKeyGenerator.derive_key_from_password(password, salt)
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 ### Strong Defaults
 
@@ -250,22 +249,22 @@ key_again, _ = SecureKeyGenerator.derive_key_from_password(password, salt)
 
 ### What's Blocked
 
-- ❌ RSA keys below 3072 bits
-- ❌ Weak padding schemes (PKCS#1 v1.5)
-- ❌ Unauthenticated encryption modes
-- ❌ Weak key derivation functions
+- RSA keys below 3072 bits
+- Weak padding schemes (PKCS#1 v1.5)
+- Unauthenticated encryption modes
+- Weak key derivation functions
 
 ### Automatic Protection Against
 
-- ✅ **Padding Oracle Attacks** - Uses OAEP padding
-- ✅ **Tampering** - GCM mode authenticates data
-- ✅ **Replay Attacks** - Random nonces for each encryption
-- ✅ **Weak Keys** - Enforces minimum key sizes
-- ✅ **Password Cracking** - High iteration count for PBKDF2
+- Padding Oracle Attacks — uses OAEP padding
+- Tampering — GCM mode authenticates data
+- Replay Attacks — random nonces for each encryption
+- Weak Keys — enforces minimum key sizes
+- Password Cracking — high iteration count for PBKDF2
 
 ---
 
-## 🎓 API Reference
+## API Reference
 
 ### SimpleCrypto (Easiest Interface)
 
@@ -342,9 +341,9 @@ class SecureFileEncryption:
 
 ---
 
-## 🛡️ Best Practices
+## Best Practices
 
-### ✅ DO
+### Do
 
 1. **Use password encryption for your own files**
    ```python
@@ -357,7 +356,7 @@ class SecureFileEncryption:
    ```
 
 3. **Keep private keys secret and backed up**
-   - Store in secure location
+   - Store in a secure location
    - Never commit to git
    - Make encrypted backups
 
@@ -373,7 +372,7 @@ class SecureFileEncryption:
        print("WARNING: Message may be tampered!")
    ```
 
-### ❌ DON'T
+### Don't
 
 1. **Don't use weak passwords**
    - Bad: "password123", "qwerty", "admin"
@@ -384,8 +383,8 @@ class SecureFileEncryption:
    - Private keys should never leave your system
 
 3. **Don't reuse passwords across files**
-   - Each important file should have unique password
-   - Use password manager to track
+   - Each important file should have a unique password
+   - Use a password manager to track them
 
 4. **Don't lose the salt or nonce**
    - These are needed for decryption
@@ -397,7 +396,7 @@ class SecureFileEncryption:
 
 ---
 
-## 📊 Performance
+## Performance
 
 | Operation | Small File (1 MB) | Large File (100 MB) |
 |-----------|------------------|---------------------|
@@ -411,44 +410,43 @@ class SecureFileEncryption:
 
 ---
 
-## 🐛 Common Issues
+## Common Issues
 
-### Issue: "Key size is insecure"
+### "Key size is insecure"
 ```python
-# ❌ This will fail:
+# This will fail:
 SecureKeyGenerator.generate_rsa_keypair(key_size=2048)
 
-# ✅ Use minimum 3072 or recommended 4096:
+# Use minimum 3072 or recommended 4096:
 SecureKeyGenerator.generate_rsa_keypair(key_size=4096)
 ```
 
-### Issue: "Data too large for RSA encryption"
+### "Data too large for RSA encryption"
 ```python
-# ❌ RSA can only encrypt small data (~470 bytes for 4096-bit key)
+# RSA can only encrypt small data (~470 bytes for 4096-bit key)
 rsa.encrypt(large_file_content)
 
-# ✅ Use password or hybrid encryption for files:
+# Use password or hybrid encryption for files:
 SimpleCrypto.encrypt_file_with_password("large_file.zip", "password")
 ```
 
-### Issue: "Wrong password or corrupted file"
-- Check password is exactly correct (case-sensitive)
-- Ensure encrypted file wasn't modified
+### "Wrong password or corrupted file"
+- Check that the password is exactly correct (case-sensitive)
+- Ensure the encrypted file wasn't modified
 - Verify you're using the right encrypted file
 
-### Issue: "No private key available"
-- Make sure you're using private key for decryption
+### "No private key available"
+- Make sure you're using the private key for decryption
 - Public keys can only encrypt, not decrypt
 
 ---
 
-## 🎯 Use Cases
+## Use Cases
 
 ### Personal Use
 - Encrypt sensitive documents before cloud backup
 - Protect tax records and financial documents
 - Secure personal photos and videos
-
 
 ### Developers
 - Add encryption to your application
@@ -457,7 +455,7 @@ SimpleCrypto.encrypt_file_with_password("large_file.zip", "password")
 
 ---
 
-## 🔐 Additional Security Features
+## Additional Security Features
 
 ### Secure File Deletion
 
@@ -470,9 +468,9 @@ secure_delete_file("sensitive.txt", passes=3)
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions welcome! Please ensure:
+Contributions welcome. Please ensure:
 - All security defaults remain strong
 - Add tests for new features
 - Update documentation
@@ -480,9 +478,9 @@ Contributions welcome! Please ensure:
 
 ---
 
-## ⚠️ Security Note
+## Security Note
 
-This library provides strong security defaults, but remember:
+This library provides strong security defaults, but keep in mind:
 - No crypto library is perfect
 - Keep your keys and passwords safe
 - Regular security updates are important
@@ -490,7 +488,7 @@ This library provides strong security defaults, but remember:
 
 ---
 
-## 📚 Learn More
+## Learn More
 
 - [OWASP Cryptographic Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html)
 - [Python Cryptography Library Docs](https://cryptography.io/)
@@ -498,4 +496,4 @@ This library provides strong security defaults, but remember:
 
 ---
 
-**Made with 🔒 for secure and simple cryptography**
+*Made for secure and simple cryptography.*
